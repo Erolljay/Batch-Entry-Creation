@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en"> <!-- Removed dark class -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel to Accounting Formatter</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Configure Tailwind for light mode (default)
+        tailwind.config = {
+            // darkMode: 'class', // Keep this if you might want a toggle later
+            theme: {
+                extend: {
+                    colors: {
+                        // Define custom light theme colors
+                        'primary-accent': '#3b82f6', // Blue accent
+                        'secondary-accent': '#10b981', // Emerald green for success
+                        'light-bg': '#f9fafb', // Very light gray background
+                        'light-card': '#ffffff', // White card background
+                        'light-border': '#e5e7eb', // Light gray border
+                        'light-text': '#1f2937', // Dark gray text
+                        'light-text-secondary': '#6b7280', // Medium gray text
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'], // Clean sans-serif font
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom scrollbar for webkit browsers (light theme) */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #c1c1c1;
+            border-radius: 4px;
+            border: 2px solid #f1f1f1;
+        }
+         ::-webkit-scrollbar-thumb:hover {
+            background-color: #a8a8a8;
+        }
+
+        /* Style for placeholder text */
+        textarea::placeholder {
+            @apply text-gray-400 italic text-sm;
+        }
+
+        /* Custom focus ring (using primary accent) */
+         *:focus-visible {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+            border-radius: 2px; /* Optional: slightly round the focus outline */
+        }
+        /* Ensure buttons have focus state */
+        button:focus-visible {
+             outline: 2px solid #3b82f6;
+             outline-offset: 2px;
+        }
+        /* Style active tab */
+        .tab-button.active {
+            @apply border-primary-accent text-primary-accent;
+        }
+        /* Style inactive tabs */
+        .tab-button:not(.active) {
+             @apply border-transparent text-light-text-secondary hover:text-light-text hover:border-gray-300;
+        }
+        /* Tab content visibility */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+    </style>
+</head>
+<body class="bg-light-bg text-light-text font-sans p-4 md:p-8 min-h-screen">
+
+    <div class="max-w-5xl mx-auto bg-light-card shadow-lg rounded-lg p-6 border border-light-border">
+        <div class="flex items-center justify-center mb-8 space-x-3">
+             <!-- Simple Spreadsheet Icon -->
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+             </svg>
+             <h1 class="text-2xl md:text-3xl font-bold text-primary-accent text-center tracking-wide">Excel to Accounting Formatter</h1>
+             <!-- Simple Arrow Icon -->
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-light-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+             </svg>
+             <!-- Simple Accounting/Manager Icon -->
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+             </svg>
+        </div>
+
+
+        <!-- Tab Navigation -->
+        <div class="border-b border-light-border mb-6">
+            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                <button class="tab-button active whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm focus:outline-none" onclick="openTab(event, 'coa')">
+                    Chart of Accounts
+                </button>
+                <button class="tab-button whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm focus:outline-none transition duration-150 ease-in-out" onclick="openTab(event, 'receipts')">
+                    Receipts Import
+                </button>
+                <button class="tab-button whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm focus:outline-none transition duration-150 ease-in-out" onclick="openTab(event, 'payments')">
+                    Payments Import
+                </button>
+            </nav>
+        </div>
+
+        <!-- Tab Content Area -->
+        <div>
+            <!-- Chart of Accounts Tab -->
+            <div id="coa" class="tab-content active">
+                <h2 class="text-xl font-semibold text-light-text mb-4">Chart of Accounts</h2>
+                <p class="text-sm text-light-text-secondary mb-4 leading-relaxed">
+                    Paste your Chart of Accounts data (Tab-separated: Account Code, Account Name). This data is used for lookups in other tabs.
+                </p>
+                <div class="mb-4">
+                    <label for="coa-input" class="block text-sm font-medium text-gray-600 mb-1">Paste CoA Data:</label>
+                    <textarea id="coa-input" rows="10" class="w-full p-3 bg-gray-50 border border-light-border rounded-md shadow-sm text-light-text font-mono text-sm focus:border-primary-accent focus:ring-1 focus:ring-primary-accent" placeholder="Example:&#10;1001&#x9;Cash on Hand&#10;6001&#x9;Rent Expense&#10;..."></textarea>
+                </div>
+                <button class="px-5 py-2 bg-primary-accent text-white text-sm font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-accent transition duration-150 ease-in-out" onclick="processCoA()">
+                    Process CoA
+                </button>
+                <div id="coa-status" class="mt-3 text-sm min-h-[20px]"></div> <!-- Status message area -->
+            </div>
+
+            <!-- Receipts Import Tab -->
+            <div id="receipts" class="tab-content">
+                <h2 class="text-xl font-semibold text-light-text mb-4">Receipts Import (from "SalesDB")</h2>
+                 <p class="text-sm text-light-text-secondary mb-4 leading-relaxed">
+                    Paste raw receipts data below. Lines with zero amounts are skipped. Discount/Retention/Recoupment lines require the account in CoA & non-zero amount.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="receipts-input" class="block text-sm font-medium text-gray-600 mb-1">Paste Raw Receipts Data:</label>
+                        <textarea id="receipts-input" rows="12" class="w-full p-3 bg-gray-50 border border-light-border rounded-md shadow-sm text-light-text font-mono text-sm focus:border-primary-accent focus:ring-1 focus:ring-primary-accent" placeholder="Paste raw receipt data here including the header row...&#10;Date&#x9;Invoice #&#x9;TIN&#x9;...&#x9;Account Title&#x9;..."></textarea>
+                    </div>
+                    <div>
+                        <label for="receipts-output" class="block text-sm font-medium text-gray-600 mb-1">Formatted Output (for Manager.io):</label>
+                        <textarea id="receipts-output" rows="12" class="w-full p-3 bg-gray-100 border border-light-border rounded-md shadow-sm text-gray-700 font-mono text-sm" readonly placeholder="Formatted data will appear here..."></textarea>
+                    </div>
+                </div>
+                 <div class="mt-4 flex items-center space-x-4">
+                    <button class="px-5 py-2 bg-secondary-accent text-white text-sm font-semibold rounded-md shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-accent transition duration-150 ease-in-out" onclick="formatReceipts()">
+                        Format Receipts
+                    </button>
+                    <button class="px-5 py-2 bg-gray-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150 ease-in-out" onclick="copyToClipboard('receipts-output')">
+                        Copy Output
+                    </button>
+                 </div>
+                 <div id="receipts-status" class="mt-3 text-sm min-h-[20px]"></div> <!-- Status message area -->
+                 <div id="receipts-copy-status" class="mt-1 text-sm text-blue-600 min-h-[20px]"></div> <!-- Copy status -->
+            </div>
+
+            <!-- Payments Import Tab -->
+            <div id="payments" class="tab-content">
+                 <h2 class="text-xl font-semibold text-light-text mb-4">Payments Import (from "PurchaseDB")</h2>
+                 <p class="text-sm text-light-text-secondary mb-4 leading-relaxed">
+                    Paste raw payments data below. Zero amount lines are skipped. Line 4 (WTax) requires ATC code & non-zero amount.
+                </p>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="payments-input" class="block text-sm font-medium text-gray-600 mb-1">Paste Raw Payments Data:</label>
+                        <textarea id="payments-input" rows="12" class="w-full p-3 bg-gray-50 border border-light-border rounded-md shadow-sm text-light-text font-mono text-sm focus:border-primary-accent focus:ring-1 focus:ring-primary-accent" placeholder="Paste raw payment data here including the header row...&#10;Date&#x9;Supplier Invoice #&#x9;...&#x9;Account Title&#x9;...&#x9;ATC"></textarea>
+                    </div>
+                    <div>
+                        <label for="payments-output" class="block text-sm font-medium text-gray-600 mb-1">Formatted Output (for Manager.io):</label>
+                        <textarea id="payments-output" rows="12" class="w-full p-3 bg-gray-100 border border-light-border rounded-md shadow-sm text-gray-700 font-mono text-sm" readonly placeholder="Formatted data will appear here..."></textarea>
+                    </div>
+                </div>
+                 <div class="mt-4 flex items-center space-x-4">
+                    <button class="px-5 py-2 bg-secondary-accent text-white text-sm font-semibold rounded-md shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-accent transition duration-150 ease-in-out" onclick="formatPayments()">
+                        Format Payments
+                    </button>
+                    <button class="px-5 py-2 bg-gray-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150 ease-in-out" onclick="copyToClipboard('payments-output')">
+                        Copy Output
+                    </button>
+                 </div>
+                 <div id="payments-status" class="mt-3 text-sm min-h-[20px]"></div> <!-- Status message area -->
+                 <div id="payments-copy-status" class="mt-1 text-sm text-blue-600 min-h-[20px]"></div> <!-- Copy status -->
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Global Storage ---
+        let chartOfAccounts = {}; // Stores { "AccountCode": "AccountName" }
+
+        // --- Tab Switching Logic ---
+        function openTab(evt, tabName) {
+            // Get all elements with class="tab-content" and hide them
+            const tabcontent = document.querySelectorAll(".tab-content");
+            tabcontent.forEach(tab => {
+                if (tab) {
+                    tab.style.display = "none";
+                    tab.classList.remove('active');
+                }
+            });
+
+            // Get all elements with class="tab-button" and remove the "active" class styling
+            const tablinks = document.querySelectorAll(".tab-button");
+            tablinks.forEach(link => {
+                link.classList.remove('active', 'border-primary-accent', 'text-primary-accent');
+                link.classList.add('border-transparent', 'text-light-text-secondary', 'hover:text-light-text', 'hover:border-gray-300'); // Use light theme classes
+            });
+
+            // Show the current tab, and add an "active" class to the button that opened the tab
+            const currentTab = document.getElementById(tabName);
+            if (currentTab) {
+                currentTab.style.display = "block";
+                currentTab.classList.add('active');
+            }
+
+            // Add active styles to the clicked button
+            evt.currentTarget.classList.add('active', 'border-primary-accent', 'text-primary-accent');
+            evt.currentTarget.classList.remove('border-transparent', 'text-light-text-secondary', 'hover:text-light-text', 'hover:border-gray-300');
+
+            // Clear status messages when switching tabs
+            clearAllStatus();
+        }
+
+        // --- Helper Function to Set Status ---
+        function setStatus(elementId, message, isError = false) {
+            const statusEl = document.getElementById(elementId);
+            if (!statusEl) return;
+            // Use innerHTML to allow basic formatting like line breaks
+            statusEl.innerHTML = message.replace(/\n/g, '<br>');
+            if (isError) {
+                statusEl.className = 'mt-3 text-sm text-red-600 min-h-[20px]'; // Standard red for errors
+            } else {
+                statusEl.className = 'mt-3 text-sm text-green-600 min-h-[20px]'; // Standard green for success
+            }
+        }
+
+        // --- Chart of Accounts Logic ---
+        function processCoA() {
+            const input = document.getElementById('coa-input').value.trim();
+            const statusId = 'coa-status';
+            setStatus(statusId, ''); // Clear previous status
+            chartOfAccounts = {}; // Clear previous CoA data
+
+            if (!input) {
+                setStatus(statusId, 'Error: No data pasted.', true);
+                return;
+            }
+
+            const lines = input.split('\n');
+            let processedCount = 0;
+            let errorLines = [];
+
+            lines.forEach((line, index) => {
+                const trimmedLine = line.trim();
+                if (trimmedLine === '') return; // Skip empty lines
+
+                // Assume columns are separated by a Tab character
+                const columns = trimmedLine.split('\t');
+
+                if (columns.length >= 2 && columns[0].trim() !== '') {
+                    const accountCode = columns[0].trim();
+                    const accountName = columns[1].trim(); // Get the name too
+                    chartOfAccounts[accountCode] = accountName; // Store code -> name mapping
+                    processedCount++;
+                } else if (trimmedLine) { // Only report error if line wasn't just whitespace
+                    errorLines.push(index + 1); // Store line number of error
+                }
+            });
+
+            if (errorLines.length > 0) {
+                setStatus(statusId, `Processed ${processedCount} accounts.\nError processing lines: ${errorLines.join(', ')}.\nEnsure data has 2 tab-separated columns and Account Code isn't empty.`, true);
+            } else if (processedCount > 0) {
+                setStatus(statusId, `Successfully processed ${processedCount} accounts.`);
+            } else {
+                setStatus(statusId, 'No valid accounts found in the pasted data.', true);
+            }
+             console.log("Processed Chart of Accounts:", chartOfAccounts); // For debugging
+        }
+
+        // --- Data Formatting Logic ---
+
+        // Helper function to parse input data (assumes tab-separated)
+        // Skips the first line (header) if it seems like a header row
+        function parseInputData(inputId, statusId, expectedHeaderStart) {
+             const input = document.getElementById(inputId).value.trim();
+             setStatus(statusId, ''); // Clear status
+
+             if (!input) {
+                 setStatus(statusId, 'Error: No data pasted in the input area.', true);
+                 return null; // Indicate failure
+             }
+
+            // Split into lines, trim each line, filter out empty lines
+            let lines = input.split('\n')
+                               .map(line => line.trim())
+                               .filter(line => line !== '');
+
+            // Basic header detection and removal
+            if (lines.length > 0 && expectedHeaderStart && lines[0].toLowerCase().startsWith(expectedHeaderStart.toLowerCase())) {
+                console.log("Detected and skipped header row:", lines[0]);
+                lines = lines.slice(1); // Remove the first line
+            } else if (lines.length > 0 && expectedHeaderStart) {
+                 console.log(`Did not detect expected header starting with: "${expectedHeaderStart}"`);
+            }
+
+
+            if (lines.length === 0) {
+                 setStatus(statusId, 'Error: No data rows found after potentially skipping header.', true);
+                 return null;
+            }
+
+            // Split each line by tab
+            return lines.map(line => line.split('\t'));
+        }
+
+        // Helper function to find account hash key by account name (case-insensitive)
+        function findAccountHashKey(accountTitle) {
+            if (!accountTitle) return null; // Handle empty title case
+            const searchTerm = accountTitle.trim().toLowerCase();
+            for (const hashKey in chartOfAccounts) {
+                // Ensure it's a direct property and not from prototype chain
+                if (Object.prototype.hasOwnProperty.call(chartOfAccounts, hashKey)) {
+                    const name = chartOfAccounts[hashKey].trim().toLowerCase();
+                    if (name === searchTerm) {
+                        return hashKey; // Return the hash key (code)
+                    }
+                }
+            }
+            return null; // Not found
+        }
+
+        // Helper function to safely parse float, returning 0 for errors/NaN
+        function safeParseFloat(value) {
+            // Remove commas before parsing, handle potential non-string input
+            const stringValue = String(value).replace(/,/g, '');
+            const parsed = parseFloat(stringValue);
+            // Treat negative zero as zero
+            return (isNaN(parsed) || Math.abs(parsed) < 0.0001) ? 0 : parsed;
+        }
+
+        // Helper function to format number with 2 decimal places (no commas)
+        function formatAmount(value) {
+            const number = Number(value); // Ensure it's a number type
+             if (isNaN(number)) {
+                return "0.00"; // Return default string if input was not a valid number
+            }
+            // Use toFixed to ensure 2 decimal places, returns a string
+            return number.toFixed(2);
+        }
+
+
+        function formatReceipts() {
+            const statusId = 'receipts-status';
+            const outputId = 'receipts-output';
+            const parsedData = parseInputData('receipts-input', statusId, "Date");
+            const outputTextarea = document.getElementById(outputId);
+            outputTextarea.value = '';
+            setStatus('receipts-copy-status', '');
+
+            if (!parsedData) return;
+
+             if (Object.keys(chartOfAccounts).length === 0) {
+                setStatus(statusId, 'Error: Chart of Accounts not processed.', true);
+                return;
+            }
+
+            // --- RECEIPTS FORMATTING LOGIC ---
+
+            // Define Account Names to Lookup and Constant Values
+            const CASH_ON_HAND_ACCOUNT_NAME = "Cash on Hand";
+            const PREPAID_TAX_2307_ACCOUNT_NAME = "Prepaid Tax Asset - 2307";
+            const PREPAID_TAX_2306_ACCOUNT_NAME = "Prepaid Tax Asset - 2306";
+            const SC_PWD_DISCOUNT_ACCOUNT_NAME = "SC/PWD Discount";
+            const RETENTION_RECEIVABLE_ACCOUNT_NAME = "Retention Receivable";
+            const RECOUPMENT_PAYABLE_ACCOUNT_NAME = "Recoupment Payable";
+            const PAID_BY_VALUE = "Other";
+            const CLEARED_STATUS = "OnTheSameDate";
+            const EXCHANGE_RATE_IS_INVERSE = "FALSE";
+            const TAX_CODE_VAT = "Sales - VAT";
+            const TAX_CODE_NT = "Sales - NT";
+            const TAX_CODE_NR = "Sales - NR";
+            const MAX_RECEIPT_LINES = 8;
+
+             // --- Pre-computation / Lookups ---
+             let lookupError = false;
+             let errorMessages = [];
+             const accountKeys = {};
+
+             // Mandatory Accounts
+             const mandatoryAccountNames = [CASH_ON_HAND_ACCOUNT_NAME, PREPAID_TAX_2307_ACCOUNT_NAME, PREPAID_TAX_2306_ACCOUNT_NAME];
+             mandatoryAccountNames.forEach(name => {
+                 const key = findAccountHashKey(name);
+                 if (!key) {
+                     errorMessages.push(`"${name}"`);
+                     lookupError = true;
+                 }
+                 accountKeys[name] = key;
+             });
+
+             if (lookupError) {
+                 setStatus(statusId, `Error: Mandatory account(s) not found in Chart of Accounts:\n- ${errorMessages.join('\n- ')}`, true);
+                 return;
+             }
+
+             // Optional Accounts
+             const optionalAccountNames = [SC_PWD_DISCOUNT_ACCOUNT_NAME, RETENTION_RECEIVABLE_ACCOUNT_NAME, RECOUPMENT_PAYABLE_ACCOUNT_NAME];
+             optionalAccountNames.forEach(name => {
+                 accountKeys[name] = findAccountHashKey(name);
+             });
+
+
+            // Define FULL Output Header (up to max lines)
+            const baseHeader = ["Date", "Reference", "PaidBy", "Contact", "ReceivedIn", "Cleared", "ExchangeRateIsInverse", "Description"];
+            let lineHeaders = [];
+            for (let i = 1; i <= MAX_RECEIPT_LINES; i++) {
+                lineHeaders.push(`Lines.${i}.Account`);
+                lineHeaders.push(`Lines.${i}.Amount`);
+                if (i <= 3) lineHeaders.push(`Lines.${i}.TaxCode`);
+            }
+            const outputHeader = baseHeader.concat(lineHeaders).join('\t');
+
+            let outputLines = [outputHeader];
+            let errors = [];
+            let warnings = [];
+
+            // Input Column Indices
+            const COL_DATE = 0;
+            const COL_INVOICE_NO = 1;
+            const COL_TIN = 2;
+            const COL_CUSTOMER_NAME = 3;
+            const COL_VATABLE_RECEIPT = 5;
+            const COL_EXEMPT_RECEIPT = 6;
+            const COL_NONREPORTABLE_RECEIPT = 7;
+            const COL_2307_IT = 9;
+            const COL_2307_WB = 10;
+            const COL_PWD_SC_DISCOUNT = 11;
+            const COL_RETENTION_RECEIVABLE = 12;
+            const COL_RECOUPMENT_PAYABLE = 13;
+            const COL_ACCOUNT_TITLE = 16;
+            const EXPECTED_COLUMNS = 21;
+
+            parsedData.forEach((columns, index) => {
+                const lineNumber = index + 2;
+                try {
+                    // Pad row with empty strings if shorter than expected
+                    while (columns.length < EXPECTED_COLUMNS) {
+                        columns.push("");
+                    }
+
+                    // Extract Data
+                    const date = String(columns[COL_DATE] || '').trim();
+                    const invoiceNum = String(columns[COL_INVOICE_NO] || '').trim();
+                    const tin = String(columns[COL_TIN] || '').trim();
+                    const customerName = String(columns[COL_CUSTOMER_NAME] || '').trim();
+                    const vatableReceipt = safeParseFloat(columns[COL_VATABLE_RECEIPT]);
+                    const exemptReceipt = safeParseFloat(columns[COL_EXEMPT_RECEIPT]);
+                    const nonReportableReceipt = safeParseFloat(columns[COL_NONREPORTABLE_RECEIPT]);
+                    const tax2307IT = safeParseFloat(columns[COL_2307_IT]);
+                    const tax2306Amount = safeParseFloat(columns[COL_2307_WB]);
+                    const pwdScDiscountAmount = safeParseFloat(columns[COL_PWD_SC_DISCOUNT]);
+                    const retentionReceivableAmount = safeParseFloat(columns[COL_RETENTION_RECEIVABLE]);
+                    const recoupmentPayableAmount = safeParseFloat(columns[COL_RECOUPMENT_PAYABLE]);
+                    const accountTitle = String(columns[COL_ACCOUNT_TITLE] || '').trim();
+
+                    // Basic Validation
+                    if (!date || !invoiceNum || !accountTitle) {
+                        throw new Error('Missing required field (Date, Invoice #, or Account Title).');
+                    }
+
+                    // Lookups and Calculations
+                    const contact = `${tin} - ${customerName}`;
+                    const description = `${tin} - ${customerName} - ${invoiceNum}`;
+                    const lines1to3AccountKey = findAccountHashKey(accountTitle);
+                    let lines1to3AccountKeyOutput = lines1to3AccountKey;
+                    if (!lines1to3AccountKey) {
+                        warnings.push(`Line ${lineNumber}: Account Title "${accountTitle}" not found. Using placeholder.`);
+                        lines1to3AccountKeyOutput = `NOT_FOUND_${accountTitle.replace(/\s+/g, '_')}`;
+                    }
+
+                    // --- Build potential lines (Conditionally add optional lines) ---
+                    const potentialLines = [];
+                    if (vatableReceipt !== 0) potentialLines.push({ account: lines1to3AccountKeyOutput, amount: formatAmount(vatableReceipt), taxCode: TAX_CODE_VAT });
+                    if (exemptReceipt !== 0) potentialLines.push({ account: lines1to3AccountKeyOutput, amount: formatAmount(exemptReceipt), taxCode: TAX_CODE_NT });
+                    if (nonReportableReceipt !== 0) potentialLines.push({ account: lines1to3AccountKeyOutput, amount: formatAmount(nonReportableReceipt), taxCode: TAX_CODE_NR });
+                    if (tax2307IT !== 0) potentialLines.push({ account: accountKeys[PREPAID_TAX_2307_ACCOUNT_NAME], amount: formatAmount(-tax2307IT) });
+                    if (tax2306Amount !== 0) potentialLines.push({ account: accountKeys[PREPAID_TAX_2306_ACCOUNT_NAME], amount: formatAmount(-tax2306Amount) });
+                    // Only add if account exists AND amount is non-zero
+                    if (accountKeys[SC_PWD_DISCOUNT_ACCOUNT_NAME] && pwdScDiscountAmount !== 0) {
+                         potentialLines.push({ account: accountKeys[SC_PWD_DISCOUNT_ACCOUNT_NAME], amount: formatAmount(-pwdScDiscountAmount) });
+                    }
+                    if (accountKeys[RETENTION_RECEIVABLE_ACCOUNT_NAME] && retentionReceivableAmount !== 0) {
+                         potentialLines.push({ account: accountKeys[RETENTION_RECEIVABLE_ACCOUNT_NAME], amount: formatAmount(-retentionReceivableAmount) });
+                    }
+                    if (accountKeys[RECOUPMENT_PAYABLE_ACCOUNT_NAME] && recoupmentPayableAmount !== 0) {
+                         potentialLines.push({ account: accountKeys[RECOUPMENT_PAYABLE_ACCOUNT_NAME], amount: formatAmount(-recoupmentPayableAmount) });
+                    }
+
+
+                    // --- Construct Output Row ---
+                    const outputRowBase = [
+                        date, invoiceNum, PAID_BY_VALUE, contact, accountKeys[CASH_ON_HAND_ACCOUNT_NAME],
+                        CLEARED_STATUS, EXCHANGE_RATE_IS_INVERSE, description
+                    ];
+
+                    let outputRowLines = [];
+                    potentialLines.forEach((line, lineIndex) => {
+                        outputRowLines.push(line.account);
+                        outputRowLines.push(line.amount);
+                        if (lineIndex < 3 && line.taxCode) outputRowLines.push(line.taxCode);
+                        else if (lineIndex < 3) outputRowLines.push("");
+                    });
+                    let finalOutputRow = outputRowBase.concat(outputRowLines);
+                    const requiredLength = baseHeader.length + (3 * 3) + (5 * 2); // Calculate expected length based on header structure
+                    while (finalOutputRow.length < requiredLength) finalOutputRow.push("");
+
+                    outputLines.push(finalOutputRow.join('\t'));
+
+                } catch (error) {
+                     const rowData = columns.join('\t').substring(0, 100);
+                     errors.push(`Line ${lineNumber}: ${error.message} [Data: ${rowData}...]`);
+                }
+            });
+
+            outputTextarea.value = outputLines.join('\n');
+
+            // Report Status
+            let finalStatus = '';
+            let isError = errors.length > 0;
+            if (errors.length > 0) {
+                 finalStatus += `Formatted ${outputLines.length -1} data rows with ${errors.length} errors:\n- ${errors.slice(0, 5).join('\n- ')}${errors.length > 5 ? '\n- ... (Check console)' : ''}\n`;
+                 console.error("Receipt Formatting Errors:", errors);
+            } else if (outputLines.length > 1){
+                finalStatus += `Successfully formatted ${outputLines.length - 1} data rows.\n`;
+            } else {
+                 finalStatus += 'No valid data rows found to format.\n';
+                 isError = true;
+            }
+            if (warnings.length > 0) {
+                finalStatus += `${warnings.length} warnings (e.g., Account Title not found):\n- ${warnings.slice(0,3).join('\n- ')}${warnings.length > 3 ? '\n- ...' : ''}`;
+                 console.warn("Receipt Formatting Warnings:", warnings);
+            }
+            setStatus(statusId, finalStatus.trim(), isError);
+        }
+
+
+        function formatPayments() {
+            const statusId = 'payments-status';
+            const outputId = 'payments-output';
+            const parsedData = parseInputData('payments-input', statusId, "Date");
+            const outputTextarea = document.getElementById(outputId);
+            outputTextarea.value = '';
+            setStatus('payments-copy-status', '');
+
+            if (!parsedData) return;
+
+             if (Object.keys(chartOfAccounts).length === 0) {
+                setStatus(statusId, 'Error: Chart of Accounts not processed.', true);
+                return;
+            }
+
+            // --- PAYMENTS FORMATTING LOGIC ---
+
+            // Define Account Names to Lookup and Constant Values
+            const CASH_ON_HAND_ACCOUNT_NAME = "Cash on Hand"; // For PaidFrom
+            const CLEARED_STATUS = "OnTheSameDate";
+            const PAYEE_VALUE = "Other";
+            const TAX_CODE_PURCHASE_VAT = "Purchases - VAT";
+            const TAX_CODE_PURCHASE_NT = "Purchases - NT";
+            const TAX_CODE_PURCHASE_NR = "Purchases - NR";
+            const MAX_PAYMENT_LINES = 4;
+
+             // --- Pre-computation / Lookups ---
+             let lookupError = false;
+             let errorMessages = [];
+
+             const paidFromAccountKey = findAccountHashKey(CASH_ON_HAND_ACCOUNT_NAME);
+             if (!paidFromAccountKey) {
+                 errorMessages.push(`"${CASH_ON_HAND_ACCOUNT_NAME}" (for PaidFrom)`);
+                 lookupError = true;
+             }
+
+             if (lookupError) {
+                 setStatus(statusId, `Error: Required account(s) not found in Chart of Accounts:\n- ${errorMessages.join('\n- ')}`, true);
+                 return;
+             }
+
+
+            // Define FULL Output Header (up to max lines)
+             const baseHeader = [
+                "Date", "Reference", "PaidFrom", "Cleared", "BankClearDate",
+                "ExchangeRate", "ExchangeRateIsInverse", "Payee", "Customer", "Supplier",
+                "Contact", "Description", "Lines.1.Item",
+            ];
+            let lineHeaders = [];
+             for (let i = 1; i <= MAX_PAYMENT_LINES; i++) {
+                lineHeaders.push(`Lines.${i}.Account`);
+                if (i === 1) {
+                    lineHeaders.push(`Lines.${i}.InterAccountTransferAccount`);
+                    lineHeaders.push(`Lines.${i}.AccountsReceivableCustomer`);
+                    lineHeaders.push(`Lines.${i}.AccountsReceivableSalesInvoice`);
+                }
+                lineHeaders.push(`Lines.${i}.Amount`);
+                if (i <= 3) lineHeaders.push(`Lines.${i}.TaxCode`);
+            }
+             const outputHeader = baseHeader.concat(lineHeaders).join('\t');
+
+
+            let outputLines = [outputHeader];
+            let errors = [];
+            let warnings = [];
+
+            // Input Column Indices
+            const COL_P_DATE = 0;
+            const COL_P_SUPPLIER_INVOICE_NO = 1;
+            const COL_P_TIN = 2;
+            const COL_P_SUPPLIER_NAME = 3;
+            const COL_P_VATABLE = 5;
+            const COL_P_NON_VATABLE = 6;
+            const COL_P_NON_BIR = 7;
+            const COL_P_WITHHOLDING_TAX = 9;
+            const COL_P_ACCOUNT_TITLE = 11;
+            const COL_P_ATC = 14;
+            const EXPECTED_P_COLUMNS = 17;
+
+            parsedData.forEach((columns, index) => {
+                 const lineNumber = index + 2;
+                try {
+                    // Pad row
+                     while (columns.length < EXPECTED_P_COLUMNS) columns.push("");
+
+                    // Extract Data
+                    const date = String(columns[COL_P_DATE] || '').trim();
+                    const supplierInvoiceNum = String(columns[COL_P_SUPPLIER_INVOICE_NO] || '').trim();
+                    const tin = String(columns[COL_P_TIN] || '').trim();
+                    const supplierName = String(columns[COL_P_SUPPLIER_NAME] || '').trim();
+                    const vatableAmount = safeParseFloat(columns[COL_P_VATABLE]);
+                    const nonVatableAmount = safeParseFloat(columns[COL_P_NON_VATABLE]);
+                    const nonBirAmount = safeParseFloat(columns[COL_P_NON_BIR]);
+                    const withholdingTaxAmount = safeParseFloat(columns[COL_P_WITHHOLDING_TAX]);
+                    const accountTitle = String(columns[COL_P_ACCOUNT_TITLE] || '').trim();
+                    const atcCode = String(columns[COL_P_ATC] || '').trim();
+
+                    // Basic Validation
+                    if (!date || !supplierInvoiceNum || !accountTitle) {
+                         throw new Error('Missing required field (Date, Supplier Invoice #, or Account Title).');
+                    }
+
+                    // Lookups and Calculations
+                    const contact = `${tin} - ${supplierName}`;
+                    const description = `${tin} - ${supplierName} - ${supplierInvoiceNum}`;
+                    const expenseAccountKey = findAccountHashKey(accountTitle);
+                    let expenseAccountKeyOutput = expenseAccountKey;
+                    if (!expenseAccountKey) {
+                        warnings.push(`Line ${lineNumber}: Account Title "${accountTitle}" not found. Using placeholder.`);
+                        expenseAccountKeyOutput = `NOT_FOUND_${accountTitle.replace(/\s+/g, '_')}`;
+                    }
+
+                    // --- Build potential lines ---
+                    const potentialLines = [];
+                    if (vatableAmount !== 0) potentialLines.push({ account: expenseAccountKeyOutput, amount: formatAmount(vatableAmount), taxCode: TAX_CODE_PURCHASE_VAT });
+                    if (nonVatableAmount !== 0) potentialLines.push({ account: expenseAccountKeyOutput, amount: formatAmount(nonVatableAmount), taxCode: TAX_CODE_PURCHASE_NT });
+                    if (nonBirAmount !== 0) potentialLines.push({ account: expenseAccountKeyOutput, amount: formatAmount(nonBirAmount), taxCode: TAX_CODE_PURCHASE_NR });
+
+                    if (atcCode && withholdingTaxAmount !== 0) {
+                        const wtaxAccountName = `Wtax Payable - ${atcCode}`;
+                        const wtaxAccountKey = findAccountHashKey(wtaxAccountName);
+                        let wtaxAccountKeyOutput = wtaxAccountKey;
+                        if (!wtaxAccountKey) {
+                            warnings.push(`Line ${lineNumber}: WTax Account "${wtaxAccountName}" not found. Using placeholder.`);
+                            wtaxAccountKeyOutput = `NOT_FOUND_${wtaxAccountName.replace(/\s+/g, '_')}`;
+                        }
+                        potentialLines.push({ account: wtaxAccountKeyOutput, amount: formatAmount(-withholdingTaxAmount) });
+                    } else if (atcCode && withholdingTaxAmount === 0) {
+                         warnings.push(`Line ${lineNumber}: ATC code "${atcCode}" present but WTax is zero. Skipping WTax line.`);
+                    }
+
+
+                    // --- Construct Output Row ---
+                     const outputRowBase = [
+                        date, supplierInvoiceNum, paidFromAccountKey, CLEARED_STATUS, "", "", "",
+                        PAYEE_VALUE, "", "", contact, description, ""
+                    ];
+                    let outputRowLines = [];
+                    potentialLines.forEach((line, lineIndex) => {
+                        const currentLineNum = lineIndex + 1;
+                        outputRowLines.push(line.account);
+                        if (currentLineNum === 1) outputRowLines.push("", "", ""); // Extra cols for line 1
+                        outputRowLines.push(line.amount);
+                        if (currentLineNum <= 3 && line.taxCode) outputRowLines.push(line.taxCode);
+                        else if (currentLineNum <= 3) outputRowLines.push("");
+                    });
+                    let finalOutputRow = outputRowBase.concat(outputRowLines);
+                    const requiredLength = outputHeader.split('\t').length;
+                    while (finalOutputRow.length < requiredLength) finalOutputRow.push("");
+
+                    outputLines.push(finalOutputRow.join('\t'));
+
+                } catch (error) {
+                     const rowData = columns.join('\t').substring(0, 100);
+                     errors.push(`Line ${lineNumber}: ${error.message} [Data: ${rowData}...]`);
+                }
+            });
+
+             outputTextarea.value = outputLines.join('\n');
+
+            // Report Status
+            let finalStatus = '';
+            let isError = errors.length > 0;
+            if (errors.length > 0) {
+                 finalStatus += `Formatted ${outputLines.length -1} data rows with ${errors.length} errors:\n- ${errors.slice(0, 5).join('\n- ')}${errors.length > 5 ? '\n- ... (Check console)' : ''}\n`;
+                 console.error("Payment Formatting Errors:", errors);
+            } else if (outputLines.length > 1){
+                finalStatus += `Successfully formatted ${outputLines.length - 1} data rows.\n`;
+            } else {
+                 finalStatus += 'No valid data rows found to format.\n';
+                 isError = true;
+            }
+            if (warnings.length > 0) {
+                finalStatus += `${warnings.length} warnings (e.g., Account not found):\n- ${warnings.slice(0,3).join('\n- ')}${warnings.length > 3 ? '\n- ...' : ''}`;
+                 console.warn("Payment Formatting Warnings:", warnings);
+            }
+             setStatus(statusId, finalStatus.trim(), isError);
+        }
+
+
+        // --- Utility Functions ---
+        function copyToClipboard(elementId) {
+            const textarea = document.getElementById(elementId);
+            const textToCopy = textarea.value;
+            const copyStatusId = elementId.replace('-output', '-copy-status');
+            const statusEl = document.getElementById(copyStatusId);
+            if (!statusEl) return;
+
+            statusEl.textContent = '';
+
+            if (!textToCopy) {
+                statusEl.textContent = 'Nothing to copy.';
+                statusEl.className = 'mt-1 text-sm text-yellow-500'; // Adjusted warning color
+                return;
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                statusEl.textContent = 'Copied to clipboard!';
+                statusEl.className = 'mt-1 text-sm text-blue-600'; // Adjusted success color
+                setTimeout(() => { statusEl.textContent = ''; }, 3000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                statusEl.textContent = 'Failed to copy. Check browser permissions or console.';
+                 statusEl.className = 'mt-1 text-sm text-red-600'; // Adjusted error color
+            });
+        }
+
+        function clearAllStatus() {
+            const statusElements = document.querySelectorAll('[id$="-status"]');
+            statusElements.forEach(el => {
+                el.textContent = '';
+                 el.className = el.id.includes('-copy-') ? 'mt-1 text-sm text-blue-600' : 'mt-3 text-sm min-h-[20px]'; // Keep min-height for layout consistency
+            });
+        }
+
+         // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+             // Initial UI setup
+             const defaultActiveTab = document.querySelector('.tab-content.active');
+             if (defaultActiveTab) {
+                 defaultActiveTab.style.display = 'block';
+             }
+        });
+
+    </script>
+
+</body>
+</html>
